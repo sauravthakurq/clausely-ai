@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clausely: AI Terms & Conditions Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Tailwind Configuration (Optional, but useful for custom colors/fonts) */
+        @layer base {
+            html {
+                font-family: 'Inter', sans-serif;
+            }
+        }
+        /* Adjusted for white background */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.6); /* More opaque white glass */
+            --glass-border: rgba(0, 0, 0, 0.1); /* Subtle border for white */
+        }
+        body {
+            background-color: #ffffff; /* Pure white background */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 80px; /* Space for potential fixed footer or just bottom margin */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* Glassmorphism effect */
+        .glass-card {
+            background-color: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05); /* Softer shadow for white */
+            transition: all 0.3s ease-in-out;
+        }
+        .glass-card:hover {
+            box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Custom input focus style */
+        .focus-ring-blue:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.3); /* Softer blue glow */
+            border-color: #4299e1; /* Blue-500 */
+        }
+
+        /* Section scroll animations */
+        .animate-fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .animate-fade-in.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .animate-slide-up {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .animate-slide-up.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Loader animation */
+        .loader {
+            border: 4px solid #e0e0e0; /* Light grey */
+            border-top: 4px solid #3b82f6; /* Blue-500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Final Verdict Animation */
+        .final-verdict-box {
+            position: relative;
+            overflow: hidden;
+        }
+        .final-verdict-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            animation: rotate-gradient 5s linear infinite;
+            z-index: 0;
+            opacity: 0.3;
+        }
+        .final-verdict-box > div {
+            position: relative;
+            z-index: 1;
+        }
+        @keyframes rotate-gradient {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Accordion styles */
+        .accordion-item input[type="checkbox"] {
+            display: none;
+        }
+        .accordion-header {
+            cursor: pointer;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--glass-bg);
+            border-bottom: 1px solid var(--glass-border);
+            border-radius: 20px; /* for initial state */
+            transition: background-color 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+        }
+        .accordion-header:hover {
+            background-color: rgba(255, 255, 255, 0.75); /* More visible hover on white */
+        }
+        .accordion-header .icon {
+            transition: transform 0.3s ease-in-out;
+        }
+        .accordion-item input[type="checkbox"]:checked ~ .accordion-header .icon {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+            background-color: rgba(255, 255, 255, 0.4); /* Slightly darker glass for content */
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            padding: 0 20px;
+        }
+        .accordion-item input[type="checkbox"]:checked ~ .accordion-content {
+            max-height: 2000px; /* Adjusted to a larger value to ensure content fits */
+            padding: 20px;
+        }
+        .accordion-item:not(:last-child) {
+            margin-bottom: 20px;
+        }
+        .accordion-item input[type="checkbox"]:checked ~ .accordion-header {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        /* Icon animations in Summary Section */
+        .summary-icon {
+            transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .summary-icon:hover {
+            transform: scale(1.15); /* Pop effect */
+        }
+        .summary-icon.text-green-500:hover { color: #10B981; /* Emerald-500 */ }
+        .summary-icon.text-yellow-500:hover { color: #F59E0B; /* Amber-500 */ }
+        .summary-icon.text-red-500:hover { color: #EF4444; /* Red-500 */ }
+        .summary-icon.text-blue-500:hover { color: #3B82F6; /* Blue-500 */ }
+
+        /* Button hover animations */
+        #analyzeCompanyBtn:hover i,
+        #addFileBtn:hover i,
+        #uploadTextBtn:hover i, /* New button ID */
+        #revealDetailsBtn:hover i,
+        #askAiBtn:hover i, /* New button ID */
+        #toggleDetailedAnalysisBtn:hover i { /* New: Detailed Analysis button */
+            animation: bounce-icon 0.5s ease-in-out;
+        }
+        @keyframes bounce-icon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        /* Tagline highlighting and tooltip */
+        .highlight-word {
+            cursor: pointer;
+            position: relative;
+            font-weight: 600; /* Make highlighted words slightly bolder */
+            transition: color 0.2s ease-in-out;
+        }
+        .highlight-word.red { color: #ef4444; /* Red-500 */ }
+        .highlight-word.blue { color: #3b82f6; /* Blue-500 */ }
+        .highlight-word.dark-blue { color: #1e3a8a; /* Darker blue, like Blue-800 */ }
+        .highlight-word.green { color: #22c55e; /* Green-500 */ }
+
+        .word-tooltip {
+            position: absolute;
+            bottom: 100%; /* Position above the word */
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px); /* Adjust for positioning */
+            background-color: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+            font-size: 0.85em;
+            z-index: 20; /* Ensure it's above other elements */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .highlight-word:hover .word-tooltip,
+        .highlight-word:focus .word-tooltip,
+        .highlight-word.active-touch .word-tooltip { /* Add active-touch for mobile taps */
+            opacity: 1;
+            transform: translateX(-50%) translateY(-20px); /* Move up slightly on hover/tap */
+        }
+        .word-tooltip::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+        }
+
+        /* Risk Score Graph Styling */
+        #riskScoreGraphContainer {
+            width: 100%;
+            height: 40px; /* Height of the bar */
+            background-color: #e0e0e0; /* Light grey background for the bar track */
+            border-radius: 10px;
+            overflow: hidden; /* Hide anything outside the rounded corners */
+            margin-top: 1.5rem; /* Equivalent to mt-6 */
+            position: relative;
+        }
+        #riskScoreBar {
+            height: 100%;
+            width: 0; /* Start at 0 for animation */
+            border-radius: 10px;
+            transition: width 1s ease-out, background-color 0.5s ease-in-out;
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1.1em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased relative">
+
+    <main class="w-full max-w-7xl mx-auto px-4 md:px-8 py-12 flex flex-col items-center">
+
+        <header class="w-full flex justify-center py-6 mb-12 animate-fade-in is-visible">
+            <h1 class="text-5xl md:text-6xl font-bold text-gray-900 leading-tight text-center">
+                Clausely<span class="text-blue-600">.</span>
+            </h1>
+        </header>
+
+        <section id="search-section" class="w-full max-w-4xl mb-12 text-center animate-fade-in">
+            <h2 class="text-4xl md:text-5xl font-semibold mb-6 text-gray-900">
+                Understand Terms & Conditions Instantly.
+            </h2>
+            <p class="text-2xl md:text-3xl font-medium text-gray-700 mb-6 max-w-3xl mx-auto leading-snug">
+                <span class="highlight-word blue" tabindex="0" data-tooltip="Understand the fine print before you agree.">Click with Care.</span>
+                <span class="highlight-word dark-blue" tabindex="0" data-tooltip="Our AI has pre-analyzed common terms for you.">We’re Already There.</span>
+            </p>
+
+            <button id="revealDetailsBtn"
+                    class="px-8 py-4 bg-gray-200 text-gray-700 font-semibold rounded-xl shadow-md hover:bg-gray-300 transition-all duration-300 flex items-center justify-center gap-2 mx-auto mt-8">
+                <i data-lucide="chevron-down" class="w-5 h-5"></i> Reveal
+            </button>
+
+            <p class="text-xl md:text-2xl text-gray-600 mb-10 max-w-2xl mx-auto mt-8">
+                Leverage AI to analyze complex legal documents, summarized for clarity and peace of mind.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
+                <input type="text" id="companySearchInput" placeholder="Analyze Apple, Instagram, or any company's T&C..."
+                       class="w-full sm:w-3/4 p-4 text-lg border border-gray-200 rounded-xl focus-ring-blue transition-all duration-300 glass-card">
+                <button id="analyzeCompanyBtn"
+                        class="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2">
+                    <i data-lucide="search" class="w-5 h-5"></i> Analyze
+                </button>
+            </div>
+            <div id="loadingSpinner" class="hidden mt-8">
+                <div class="loader mx-auto"></div>
+                <p class="text-gray-500 mt-4 text-lg">Analyzing document...</p>
+            </div>
+        </section>
+
+        <section id="upload-section" class="w-full max-w-4xl mb-24 text-center animate-fade-in">
+            <h3 class="text-3xl md:text-4xl font-semibold mb-8 text-gray-900">
+                Upload Document or Paste Text for Analysis.
+            </h3>
+            <div class="flex flex-col gap-6 justify-center">
+                <div class="glass-card flex flex-col p-8 rounded-3xl w-full">
+                    <h4 class="text-xl font-semibold text-gray-800 mb-4">Paste Text Here</h4>
+                    <textarea id="textUploadInput"
+                              placeholder="Paste your Terms & Conditions text here for analysis..."
+                              class="flex-grow p-4 text-base border border-gray-200 rounded-xl focus-ring-blue transition-all duration-300 min-h-[250px] resize-y mb-4"></textarea>
+                    <button id="uploadTextBtn"
+                            class="px-8 py-4 bg-blue-500 text-white font-medium rounded-lg shadow hover:bg-blue-600 transition-all duration-300 flex items-center justify-center gap-2 text-lg">
+                        <i data-lucide="upload" class="w-5 h-5"></i> Upload Text
+                    </button>
+                </div>
+
+                <div id="dropArea"
+                     class="glass-card flex items-center justify-center p-6 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 transition-all duration-300 w-full md:w-1/2 mx-auto">
+                    <i data-lucide="file-plus" class="w-8 h-8 text-gray-400 mr-3"></i>
+                    <p class="text-base text-gray-600 font-medium mr-4">Upload File</p>
+                    <input type="file" id="fileUploadInput" accept=".pdf, .txt" class="hidden">
+                    <button id="addFileBtn"
+                            class="px-5 py-2 bg-blue-500 text-white font-medium rounded-lg shadow hover:bg-blue-600 transition-all duration-300 flex items-center justify-center gap-1 text-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add
+                    </button>
+                </div>
+            </div>
+            <div id="fileUploadStatus" class="mt-4 text-lg text-gray-700 hidden"></div>
+        </section>
+
+        <section id="summary-output-section" class="w-full max-w-4xl mb-24 hidden animate-slide-up">
+            <h3 class="text-3xl md:text-4xl font-semibold mb-8 text-gray-900 text-center">
+                AI Analysis Report
+            </h3>
+            <div class="glass-card p-8 md:p-12 mb-12">
+                <div class="flex items-center mb-6">
+                    <!-- Logo container to ensure proper fitting -->
+                    <div class="w-14 h-14 flex items-center justify-center bg-gray-50 rounded-xl mr-4 border border-gray-200 shadow-sm overflow-hidden">
+                        <img id="companyLogo" src="" alt="Company Logo" class="max-w-full max-h-full object-contain">
+                    </div>
+                    <h4 class="text-2xl font-semibold text-gray-800" id="companyAnalyzedName"></h4>
+                </div>
+                
+                <h4 class="text-2xl font-semibold text-gray-800 mb-6">Key Takeaways:</h4>
+                <ul id="summaryList" class="space-y-4 text-lg">
+                    </ul>
+
+                <div class="final-verdict-box relative mt-10 p-6 rounded-xl text-center shadow-lg from-blue-50 to-blue-100 via-white overflow-hidden">
+                    <div class="relative z-10">
+                        <h5 class="text-xl font-semibold text-gray-800 mb-2">Final Verdict:</h5>
+                        <p id="finalVerdictText" class="text-4xl font-bold text-blue-700">Safe</p>
+                    </div>
+                    <div id="riskScoreGraphContainer" class="mt-6">
+                        <div id="riskScoreBar" class="text-white text-lg font-semibold"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis Section - Initially Hidden -->
+            <div id="detailedAnalysisSection" class="w-full mt-12 mb-12 hidden animate-fade-in">
+                <div class="glass-card p-8 md:p-12">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-3xl md:text-4xl font-semibold text-gray-900">Detailed Analysis</h3>
+                        <button id="toggleDetailedAnalysisBtn"
+                                class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow-md hover:bg-blue-700 transition-all duration-300 flex items-center gap-2">
+                            <span id="toggleButtonText">Show Detailed Analysis</span>
+                            <i data-lucide="chevron-down" class="w-5 h-5" id="toggleButtonIcon"></i>
+                        </button>
+                    </div>
+                    <div id="detailedAnalysisContent" class="hidden space-y-5">
+                        <!-- Detailed analysis content will be injected here as accordion items -->
+                        <p class="text-gray-600 text-center">Loading detailed analysis...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New LLM Feature: Ask AI about T&C -->
+            <section id="ask-ai-section" class="w-full max-w-4xl mt-12 mb-12 animate-fade-in">
+                <div class="glass-card p-8 md:p-12">
+                    <h3 class="text-3xl md:text-4xl font-semibold mb-8 text-gray-900 text-center">
+                        ✨ Ask AI about T&C
+                    </h3>
+                    <p class="text-lg text-gray-700 mb-6 text-center">
+                        Ask any specific question about your T&C and the AI will provide an answer based on the document.
+                    </p>
+                    <textarea id="aiQuestionInput"
+                              placeholder="Example: 'How does this company use my data?' or 'Can I cancel my subscription at any time?'"
+                              class="w-full p-4 text-lg border border-gray-200 rounded-xl focus-ring-blue transition-all duration-300 min-h-[100px] resize-y mb-4"></textarea>
+                    <button id="askAiBtn"
+                            class="px-8 py-4 bg-purple-600 text-white font-semibold rounded-xl shadow-lg hover:bg-purple-700 transition-all duration-300 flex items-center justify-center gap-2 mx-auto">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i> Ask AI
+                    </button>
+                    <div id="aiAnswerContainer" class="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200 hidden">
+                        <h4 class="text-xl font-semibold text-blue-800 mb-3">AI's Answer:</h4>
+                        <div id="aiAnswer" class="text-gray-800 text-lg"></div>
+                        <div id="aiAnswerLoading" class="hidden mt-4">
+                            <div class="loader mx-auto !w-8 !h-8"></div>
+                            <p class="text-gray-500 mt-2 text-sm text-center">Searching for answer...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            </div>
+        </section>
+
+        <section id="how-it-works-section" class="w-full max-w-4xl mb-24 text-center animate-fade-in">
+            <h3 class="text-3xl md:text-4xl font-semibold mb-8 text-gray-900">
+                How Clausely Works
+            </h3>
+            <div class="glass-card p-8 md:p-12">
+                <p class="text-lg text-gray-700 leading-relaxed mb-6">
+                    Clausely employs advanced AI models to simplify complex legal documents like Terms & Conditions. Here’s a quick overview of our process:
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <i data-lucide="file-text" class="w-10 h-10 text-blue-600 mb-4"></i>
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">1. Input</h4>
+                        <p class="text-gray-600">Upload documents or paste text directly into our analyzer.</p>
+                    </div>
+                    <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <i data-lucide="brain" class="w-10 h-10 text-green-600 mb-4"></i>
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">2. AI Processing</h4>
+                        <p class="text-gray-600">Our AI identifies key clauses, risks, and benefits using natural language processing.</p>
+                    </div>
+                    <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <i data-lucide="bar-chart-2" class="w-10 h-10 text-purple-600 mb-4"></i>
+                        <h4 class="text-xl font-semibold text-gray-800 mb-2">3. Insights & Report</h4>
+                        <p class="text-gray-600">Receive an easy-to-understand summary and a detailed risk breakdown.</p>
+                    </div>
+                </div>
+                <p class="text-lg text-gray-700 leading-relaxed mt-6">
+                    Our goal is to empower you with clear, concise information, ensuring you make informed decisions about online agreements.
+                </p>
+            </div>
+        </section>
+
+        <section id="faq-section" class="w-full max-w-4xl mb-12 animate-fade-in">
+            <h3 class="text-3xl md:text-4xl font-semibold mb-8 text-gray-900 text-center">
+                Frequently Asked Questions
+            </h3>
+            <div class="space-y-5">
+                <div class="accordion-item glass-card">
+                    <input type="checkbox" id="faq1">
+                    <label for="faq1" class="accordion-header text-xl font-medium">
+                        Can I upload my own T&C file?
+                        <i data-lucide="chevron-down" class="icon w-6 h-6 text-gray-600"></i>
+                    </label>
+                    <div class="accordion-content">
+                        <p class="text-gray-700 py-4">
+                            Yes, absolutely! Clausely supports uploading PDF and plain text files directly from your device. Our AI will then process and summarize the document for you.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="accordion-item glass-card">
+                    <input type="checkbox" id="faq2">
+                    <label for="faq2" class="accordion-header text-xl font-medium">
+                        Is my data safe and private?
+                        <i data-lucide="chevron-down" class="icon w-6 h-6 text-gray-600"></i>
+                    </label>
+                    <div class="accordion-content">
+                        <p class="text-gray-700 py-4">
+                            We prioritize your privacy and data security. All uploaded documents are processed securely and are not stored beyond the analysis session. We use advanced encryption to protect your information.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="accordion-item glass-card">
+                    <input type="checkbox" id="faq3">
+                    <label for="faq3" class="accordion-header text-xl font-medium">
+                        Which AI engine is used for analysis?
+                        <i data-lucide="chevron-down" class="icon w-6 h-6 text-gray-600"></i>
+                    </label>
+                    <div class="accordion-content">
+                        <p class="text-gray-700 py-4">
+                            Clausely leverages a proprietary blend of state-of-the-art large language models optimized for legal document analysis. Our models are continuously updated to provide the most accurate and insightful summaries.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="w-full text-center text-gray-500 text-sm mt-12 py-8 animate-fade-in">
+            <p>&copy; 2025 Clausely. All rights reserved. Designed by Saurav Thakur.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // --- Global DOM element references ---
+        const companySearchInput = document.getElementById('companySearchInput');
+        const analyzeCompanyBtn = document.getElementById('analyzeCompanyBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const summaryOutputSection = document.getElementById('summary-output-section');
+        const companyLogo = document.getElementById('companyLogo');
+        const companyAnalyzedName = document.getElementById('companyAnalyzedName');
+        const finalVerdictText = document.getElementById('finalVerdictText');
+        const finalVerdictBox = document.querySelector('.final-verdict-box');
+        const riskScoreBar = document.getElementById('riskScoreBar');
+        
+        let fullSummaryData = [];
+        let fullDetailedAnalysisData = []; // New: To store detailed analysis
+        let lastAnalyzedText = ""; // To store the last analyzed T&C text for the "Ask AI" feature
+
+        const dropArea = document.getElementById('dropArea');
+        const fileUploadInput = document.getElementById('fileUploadInput');
+        const addFileBtn = document.getElementById('addFileBtn');
+        const textUploadInput = document.getElementById('textUploadInput');
+        const uploadTextBtn = document.getElementById('uploadTextBtn');
+        const fileUploadStatus = document.getElementById('fileUploadStatus');
+        const summaryList = document.getElementById('summaryList');
+        
+        const askAiSection = document.getElementById('ask-ai-section');
+        const aiQuestionInput = document.getElementById('aiQuestionInput');
+        const askAiBtn = document.getElementById('askAiBtn');
+        const aiAnswerContainer = document.getElementById('aiAnswerContainer');
+        const aiAnswer = document.getElementById('aiAnswer');
+        const aiAnswerLoading = document.getElementById('aiAnswerLoading');
+
+        // New elements for Detailed Analysis
+        const detailedAnalysisSection = document.getElementById('detailedAnalysisSection');
+        const detailedAnalysisContent = document.getElementById('detailedAnalysisContent');
+        const toggleDetailedAnalysisBtn = document.getElementById('toggleDetailedAnalysisBtn');
+        const toggleButtonText = document.getElementById('toggleButtonText');
+        const toggleButtonIcon = document.getElementById('toggleButtonIcon');
+
+
+        // --- Intersection Observer for Scroll Animations ---
+        const sections = document.querySelectorAll('.animate-fade-in, .animate-slide-up');
+        const observerOptions = {
+            root: null, // viewport
+            rootMargin: '0px',
+            threshold: 0.2 // Trigger when 20% of the section is visible
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    if (!entry.target.id.includes('summary-output-section') && !entry.target.id.includes('detailedAnalysisSection')) {
+                        observer.unobserve(entry.target); 
+                    }
+                }
+            });
+        }, observerOptions);
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+        // Function to animate the risk score percentage
+        function animateRiskScore(element, targetPercentage, duration) {
+            let start = 0;
+            const startTime = performance.now();
+
+            function updateCount(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1); // Clamp progress between 0 and 1
+                const currentPercentage = Math.floor(progress * targetPercentage);
+
+                element.style.width = `${currentPercentage}%`;
+                element.textContent = `${currentPercentage}% Score`;
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateCount);
+                } else {
+                    // Ensure it reaches the exact target at the end
+                    element.style.width = `${targetPercentage}%`;
+                    element.textContent = `${targetPercentage}% Score`;
+                }
+            }
+            requestAnimationFrame(updateCount);
+        }
+
+        // --- Predefined Company Data (Bypasses AI Search for Company Search) ---
+        const predefinedCompanyData = {
+            "facebook": {
+                name: "Facebook (Meta Platforms)",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Facebook_sample.png",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Data Collection & Usage:</strong> Facebook collects detailed personal and behavioral data, which is not fully transparent to average users due to its depth and scope." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Mandatory Arbitration:</strong> Disputes must be resolved through arbitration, restricting users from filing class-action lawsuits." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Data Retention Period:</strong> Data is retained 'for operational or legal reasons' as long as needed, which is vague." }
+                ],
+                finalVerdict: "Not Safe",
+                riskScorePercentage: 61,
+                detailedAnalysis: [
+                    { sectionTitle: "Facebook Data Collection Overview", sectionContent: "Facebook collects vast amounts of data including personal information, usage data, device information, and third-party data from partners. This data is used for personalized content, advertising, and service improvement." },
+                    { sectionTitle: "Privacy Controls & Sharing", sectionContent: "Users have some privacy controls, but data sharing with Meta's other products (Instagram, WhatsApp) and third-party advertisers is extensive. Review privacy settings regularly." },
+                    { sectionTitle: "User Content & Rights", sectionContent: "Content you post is licensed to Facebook for use, modification, and distribution. While you own your content, Facebook's broad license allows them significant control over its use within their ecosystem." },
+                    { sectionTitle: "Dispute Resolution & Liability", sectionContent: "Facebook's terms often include mandatory arbitration clauses, limiting users' ability to participate in class-action lawsuits. Their liability is generally limited to the maximum extent permitted by law." }
+                ]
+            },
+            "whatsapp": {
+                name: "WhatsApp (Meta)",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg",
+                summary: [
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>End-to-End Encryption:</strong> WhatsApp secures your messages with end-to-end encryption, keeping your chats private." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Metadata Collection:</strong> While chats are private, metadata like mobile number, contacts list, and device info are collected and shared with Meta." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Robust Security:</strong> WhatsApp's security is world-class, with no major data breaches publicly reported." }
+                ],
+                finalVerdict: "Safe",
+                riskScorePercentage: 83,
+                detailedAnalysis: [
+                    { sectionTitle: "WhatsApp Encryption", sectionContent: "WhatsApp uses Signal Protocol for end-to-end encryption, ensuring that only the sender and intended recipient can read messages. This applies to messages, calls, photos, videos, and voice messages." },
+                    { sectionTitle: "Data Shared with Meta", sectionContent: "While messages are encrypted, WhatsApp collects metadata such as phone number, contacts, and device identifiers. This data, although not message content, is shared with Meta for various purposes, including improving services and targeted advertising on Meta platforms." },
+                    { sectionTitle: "Terms of Service Updates", sectionContent: "WhatsApp has updated its Terms of Service to clarify data sharing practices with Meta. Users are generally required to accept these terms to continue using the service." },
+                    { sectionTitle: "User Responsibility", sectionContent: "Users are responsible for ensuring the legality of content shared and adherence to community guidelines. Misuse of the platform can lead to account suspension." }
+                ]
+            },
+            "instagram": {
+                name: "Instagram (Meta)",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Extensive Data Collection:</strong> Instagram collects detailed data including your photos, videos, location, likes, comments, and device info." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Third-Party Sharing:</strong> Data is shared with other Meta platforms and advertisers for targeted ads." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Vague Data Retention:</strong> Some data remains in backups even after account deletion, with no clear exact duration." }
+                ],
+                finalVerdict: "Not Safe",
+                riskScorePercentage: 62,
+                detailedAnalysis: [
+                    { sectionTitle: "Instagram Data Usage", sectionContent: "Instagram heavily relies on user data for personalized content, targeted advertising, and service improvement. This includes content you create, metadata, interactions, and device information. Data is shared extensively within Meta's ecosystem." },
+                    { sectionTitle: "Content Ownership & Licensing", sectionContent: "Users retain ownership of their content, but grant Instagram a broad license to use, distribute, and display it for operational and promotional purposes within the platform." },
+                    { sectionTitle: "Privacy Settings & Control", sectionContent: "Instagram offers various privacy settings for posts, profiles, and interactions. However, the default settings might be less private, requiring users to actively adjust them based on their preferences." },
+                    { sectionTitle: "Community Guidelines & Enforcement", sectionContent: "Instagram has strict community guidelines prohibiting certain types of content and behavior. Violations can lead to content removal, account suspension, or permanent banning." }
+                ]
+            },
+            "youtube": {
+                name: "YouTube (Google)",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg",
+                summary: [
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Transparent Data Collection:</strong> YouTube clearly collects data on your viewing habits and preferences, providing control tools." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>World-Class Security:</strong> Under Google, YouTube's security system is industry-leading, protecting your data." },
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Targeted Advertising:</strong> Data sharing occurs for targeted ads, and a binding arbitration clause is present." }
+                ],
+                finalVerdict: "Safe",
+                riskScorePercentage: 78,
+                detailedAnalysis: [
+                    { sectionTitle: "YouTube Data Collection", sectionContent: "YouTube collects information about your interactions, viewing history, search queries, and device information to personalize content, recommend videos, and serve relevant ads. This data is part of the broader Google account data." },
+                    { sectionTitle: "Content Guidelines & Monetization", sectionContent: "Content creators must adhere to strict community guidelines and copyright policies. YouTube's monetization policies dictate how creators can earn revenue and what content is eligible." },
+                    { sectionTitle: "User Privacy Controls", sectionContent: "Users have robust controls through their Google Account to manage activity data, ad personalization, and privacy settings on YouTube. This includes options to pause history, delete past activity, and control ad settings." },
+                    { sectionTitle: "Dispute Resolution & Legal Framework", sectionContent: "YouTube's terms include provisions for dispute resolution, often involving arbitration for users in certain regions. The terms also outline intellectual property rights, disclaimers, and limitations of liability." }
+                ]
+            },
+            "telegram": {
+                name: "Telegram",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg",
+                summary: [
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Minimal Data Collection:</strong> Telegram claims to collect minimal data, including phone number and metadata." },
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Secret Chat Encryption:</strong> End-to-End Encryption is only available in Secret Chats; regular chats are server-side encrypted." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Data Sharing Policy Change:</strong> Recent policy changes allow sharing of IP and phone number with law enforcement in criminal investigations." }
+                ],
+                finalVerdict: "Safe",
+                riskScorePercentage: 74,
+                detailedAnalysis: [
+                    { sectionTitle: "Telegram Data Policy", sectionContent: "Telegram emphasizes minimal data collection. It primarily collects phone number, contacts (if granted access), and metadata like IP address and device type. It states it does not collect chat content." },
+                    { sectionTitle: "Encryption Standards", sectionContent: "Standard cloud chats use server-client encryption, meaning messages are stored encrypted on Telegram's servers. End-to-end encryption is only available in 'Secret Chats', where messages are not stored on servers." },
+                    { sectionTitle: "Data Disclosure & Law Enforcement", sectionContent: "Telegram states it only discloses IP addresses and phone numbers to law enforcement if legally compelled by a court order related to proven terrorism cases. This policy has seen some changes over time." },
+                    { sectionTitle: "User Content & Channels", sectionContent: "Users are responsible for content shared in public channels and groups. Telegram has policies against illegal content and can take action, including content removal or user suspension, for violations." }
+                ]
+            },
+            "amazon": {
+                name: "Amazon",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Extensive Data Collection:</strong> Amazon collects detailed data including purchase history, search activity, location, and even Alexa voice recordings." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Third-Party Sharing:</strong> Data is shared with affiliates, third-party sellers, and advertisers, among others." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Robust Security:</strong> Amazon's security measures are strong, including encrypted financial information and good incident response." }
+                ],
+                finalVerdict: "Safe",
+                riskScorePercentage: 73,
+                detailedAnalysis: [
+                    { sectionTitle: "Amazon Data Collection", sectionContent: "Amazon collects a wide range of data including browsing history, purchase history, payment information, location data, and interactions with Alexa and other Amazon devices. This data fuels personalized recommendations and targeted advertising across its various services." },
+                    { sectionTitle: "Data Sharing Practices", sectionContent: "Amazon shares data with its affiliates, subsidiaries, third-party sellers on its marketplace, and service providers who perform functions on its behalf. Data may also be shared with advertisers for marketing purposes." },
+                    { sectionTitle: "Privacy Choices and Rights", sectionContent: "Amazon provides various privacy controls through your account settings, allowing users to manage data, advertising preferences, and cookie consent. Users can also access, download, or delete certain personal information." },
+                    { sectionTitle: "Security and Compliance", sectionContent: "Amazon implements robust security measures, including encryption for sensitive data and multi-factor authentication. They also comply with relevant data protection regulations globally." }
+                ]
+            },
+            "apple": {
+                name: "Apple",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+                summary: [
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Privacy-Focused:</strong> Apple collects minimal data and does not sell personal data for targeted advertising." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Excellent Security:</strong> Apple's security system is industry-best, including strong encryption and 2FA." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Clear Data Control:</strong> Users have clear options to delete their data, including iCloud data, location history, and Siri recordings." }
+                ],
+                finalVerdict: "Safe",
+                riskScorePercentage: 89,
+                detailedAnalysis: [
+                    { sectionTitle: "Apple's Privacy Philosophy", sectionContent: "Apple's privacy policy emphasizes data minimization and on-device processing. They aim to collect as little user data as possible and perform most personalized operations directly on the user's device rather than in the cloud." },
+                    { sectionTitle: "Data Encryption & Security", sectionContent: "Apple employs strong encryption across its services and devices, including end-to-end encryption for many iCloud data categories (e.g., Health data, payment information). Two-factor authentication is strongly encouraged and widely integrated." },
+                    { sectionTitle: "User Data Controls", sectionContent: "Users have extensive controls over their data through Apple ID settings. This includes managing app permissions, location services, ad personalization, and the ability to download or delete their data, including iCloud backups and Siri history." },
+                    { sectionTitle: "Limited Data Sharing", sectionContent: "Apple states that it does not sell user data to third parties for advertising purposes. Data sharing is primarily for service operation with trusted partners under strict confidentiality agreements, or as required by law." }
+                ]
+            },
+            "tesla": {
+                name: "Tesla",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_logo.png",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Extensive Data Collection:</strong> Tesla collects significant data including car location, speed, driving behavior, and autopilot activity." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Data Sharing:</strong> Data may be shared with insurance companies, government agencies, and advertisers, sometimes without explicit owner consent." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Vague Data Retention:</strong> Tesla's data retention periods are not clearly specified, with some data retained after account deletion." }
+                ],
+                finalVerdict: "Not Safe",
+                riskScorePercentage: 60,
+                detailedAnalysis: [
+                    { sectionTitle: "Tesla Vehicle Data Collection", sectionContent: "Tesla vehicles collect extensive operational data including speed, location, autopilot usage, camera data (for Autopilot and Sentry Mode), diagnostic data, and infotainment system usage. This data is transmitted to Tesla." },
+                    { sectionTitle: "Data Sharing & Third Parties", sectionContent: "Tesla's privacy policy indicates data may be shared with service providers, business partners (e.g., insurance companies, dealerships), and government entities or law enforcement as required. Explicit consent for some sharing might not always be obtained." },
+                    { sectionTitle: "User Data Access & Retention", sectionContent: "Users have some rights to access and delete their data, but the scope and methods for doing so can be limited, especially for vehicle operational data. Retention periods are often vaguely defined." },
+                    { sectionTitle: "Autopilot & AI Implications", sectionContent: "The extensive data collection, especially from cameras, is crucial for developing and improving Tesla's autonomous driving features. This raises privacy concerns about who has access to and how this visual data is processed and stored." }
+                ]
+            },
+            "spacex": {
+                name: "SpaceX / Starlink",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/de/SpaceX-Logo.svg",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Data Collection:</strong> Starlink collects personal information, location, browsing logs, and network usage, with terms that can be technical for users." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Vague Retention:</strong> Data retention periods are vaguely defined as 'as long as necessary,' without specific durations." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Third-Party Disclosure:</strong> Data may be shared with service providers and legal authorities, potentially without consent if required by law." }
+                ],
+                finalVerdict: "Not Safe",
+                riskScorePercentage: 66,
+                detailedAnalysis: [
+                    { sectionTitle: "Starlink Data Collection", sectionContent: "Starlink collects personal information (name, address, billing info), usage data (network performance, latency), diagnostic data, and potentially precise location data from your Starlink terminal. This data is used for service provision, improvement, and troubleshooting." },
+                    { sectionTitle: "Data Sharing & Legal Compliance", sectionContent: "Starlink may share data with service providers, affiliates, and legal authorities if required by law or to protect its rights. The terms acknowledge that data transmission over satellite internet may involve international transfers." },
+                    { sectionTitle: "Service Limitations & Disclaimers", sectionContent: "Starlink's terms include disclaimers about service availability, performance, and latency, especially in adverse weather conditions or during initial rollout phases. They limit liability for service interruptions." },
+                    { sectionTitle: "Acceptable Use Policy", sectionContent: "Users must comply with an Acceptable Use Policy that prohibits illegal activities, network abuse, and content that infringes intellectual property rights. Violations can lead to service suspension." }
+                ]
+            },
+            "starlink": { // Alias for SpaceX
+                name: "SpaceX / Starlink",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/d/de/SpaceX-Logo.svg",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Data Collection:</strong> Starlink collects personal information, location, browsing logs, and network usage, with terms that can be technical for users." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Vague Retention:</strong> Data retention periods are vaguely defined as 'as long as necessary,' without specific durations." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Third-Party Disclosure:</strong> Data may be shared with service providers and legal authorities, potentially without consent if required by law." }
+                ],
+                finalVerdict: "Not Safe",
+                riskScorePercentage: 66,
+                detailedAnalysis: [
+                    { sectionTitle: "Starlink Data Collection", sectionContent: "Starlink collects personal information (name, address, billing info), usage data (network performance, latency), diagnostic data, and potentially precise location data from your Starlink terminal. This data is used for service provision, improvement, and troubleshooting." },
+                    { sectionTitle: "Data Sharing & Legal Compliance", sectionContent: "Starlink may share data with service providers, affiliates, and legal authorities if required by law or to protect its rights. The terms acknowledge that data transmission over satellite internet may involve international transfers." },
+                    { sectionTitle: "Service Limitations & Disclaimers", sectionContent: "Starlink's terms include disclaimers about service availability, performance, and latency, especially in adverse weather conditions or during initial rollout phases. They limit liability for service interruptions." },
+                    { sectionTitle: "Acceptable Use Policy", sectionContent: "Users must comply with an Acceptable Use Policy that prohibits illegal activities, network abuse, and content that infringes intellectual property rights. Violations can lead to service suspension." }
+                ]
+            },
+            "google": {
+                name: "Google (Search, Gmail, Maps, Drive, etc.)",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg",
+                summary: [
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Transparent Data Collection:</strong> Google collects broad data but provides robust tools for users to manage and delete their data." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Industry-Leading Security:</strong> Google's security system is top-tier, including 2-step verification, phishing protection, and encryption." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Targeted Advertising:</strong> Data is shared for targeted ads (mostly aggregated), and a binding arbitration clause is present." }
+                ],
+                finalVerdict: "Safe",
+                riskScorePercentage: 82,
+                detailedAnalysis: [
+                    { sectionTitle: "Google Data Collection Practices", sectionContent: "Google collects extensive user data across its services (Search, Gmail, YouTube, Maps, etc.), including search history, location data, voice activity, and app usage. This data is used to provide, maintain, and improve services, and to personalize content and ads." },
+                    { sectionTitle: "Privacy Controls & Transparency", sectionContent: "Google offers robust privacy controls through 'My Activity' and 'Ad Settings', allowing users to review, delete, and control data collection. They also provide transparency reports on government data requests." },
+                    { sectionTitle: "Data Sharing & Advertising", sectionContent: "Google shares data with its affiliates and trusted third parties, often in an aggregated or anonymized form for advertising. Users can control ad personalization, but data is fundamental to their business model." },
+                    { sectionTitle: "Security Measures & User Rights", sectionContent: "Google implements industry-leading security measures, including strong encryption and advanced threat detection. They also outline user rights regarding data access, portability, and deletion, compliant with global regulations." }
+                ]
+            },
+            "chatgpt": {
+                name: "ChatGPT (OpenAI)",
+                logoUrl: "https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg",
+                summary: [
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Data Usage for Training:</strong> Content submitted to ChatGPT may be used by OpenAI to train and improve their models, unless opt-out options are available." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>AI Output Accuracy:</strong> OpenAI disclaims responsibility for the accuracy or quality of AI-generated output, which may contain errors or biases." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Privacy Controls for Conversations:</strong> Users can typically opt-out of their conversations being used for model training, and delete chat history." }
+                ],
+                finalVerdict: "Review Recommended",
+                riskScorePercentage: 70,
+                detailedAnalysis: [
+                    { sectionTitle: "Data Input & Model Training", sectionContent: "User inputs (text prompts) in ChatGPT are, by default, used to train and improve OpenAI's models. Users have options to opt-out of this data usage through their settings or by choosing not to submit sensitive information." },
+                    { sectionTitle: "Accuracy & Limitations of AI Output", sectionContent: "OpenAI explicitly states that AI-generated content may be inaccurate, incomplete, or reflect biases present in its training data. Users are advised to verify critical information independently." },
+                    { sectionTitle: "Content Guidelines & Moderation", sectionContent: "Users must adhere to OpenAI's usage policies, prohibiting the generation of harmful, illegal, or unethical content. OpenAI employs moderation techniques to enforce these guidelines, and violations can lead to account suspension." },
+                    { sectionTitle: "Data Retention & Deletion", sectionContent: "OpenAI provides mechanisms for users to delete their chat history. However, some data may be retained for a limited period for safety and compliance purposes." }
+                ]
+            }
+        };
+
+        // Simulated Analysis Data for generic company names or file uploads
+        function getSimulatedAnalysisData() {
+            return {
+                summary: [
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Transparent Data Collection & Usage:</strong> The policy clearly outlines the types of data collected and how it's used for service improvement and personalization, with strong opt-out options." },
+                    { type: "Important Clause", icon: "alert-triangle", colorClass: "text-yellow-500", tagBg: "bg-yellow-100", tagText: "text-yellow-700", content: "<strong>Third-Party Disclosure Specifics:</strong> Data may be shared with affiliated companies, service providers, and potentially marketing partners. Users should review specific clauses regarding broad data sharing for marketing or aggregated data usage, as this often represents a common area of concern for privacy." },
+                    { type: "Potential Risk", icon: "x-circle", colorClass: "text-red-500", tagBg: "bg-red-100", tagText: "text-red-700", content: "<strong>Mandatory Binding Arbitration:</strong> Disputes must be resolved through binding arbitration instead of traditional court litigation, meaning users waive their right to a jury trial and participation in class-action lawsuits." },
+                    { type: "Key Benefit", icon: "check-circle", colorClass: "text-green-500", tagBg: "bg-green-100", tagText: "text-green-700", content: "<strong>Robust Data Security & Incident Response:</strong> Industry-standard security measures (e.g., encryption, access controls) are implemented to protect user data. The company commits to promptly notifying users in the event of a data breach." },
+                    { type: "Information", icon: "info", colorClass: "text-blue-500", tagBg: "bg-blue-100", tagText: "text-blue-700", content: "<strong>Specified Data Retention Period:</strong> The policy clarifies the period for which different types of user data are retained after an account is terminated or a user ceases using the service." }
+                ],
+                finalVerdict: ['Safe', 'Review Recommended', 'Risky'][Math.floor(Math.random() * 3)],
+                riskScorePercentage: Math.floor(Math.random() * 100), // Random percentage for simulation
+                detailedAnalysis: [
+                    { sectionTitle: "Data Privacy & Usage (Generic)", sectionContent: "This section would typically elaborate on what specific data types are collected (e.g., personal info, usage data, device data), how they are used (e.g., service provision, personalization, marketing), and the legal basis for processing (e.g., consent, contract). It would also detail data sharing with third parties, including affiliates and service providers. This is a generic overview for simulated content." },
+                    { sectionTitle: "User Rights & Control (Generic)", sectionContent: "This part explains the rights users have over their data, such as access, correction, deletion, and objection to processing. It describes how users can exercise these rights, including options for managing communication preferences, cookie settings, and account deletion procedures. This is a generic overview for simulated content." },
+                    { sectionTitle: "Dispute Resolution & Legal Terms (Generic)", sectionContent: "This includes clauses on governing law, jurisdiction, and dispute resolution mechanisms like arbitration or mediation. It specifies limitations of liability, disclaimers, and terms related to intellectual property, providing a comprehensive legal framework. This is a generic overview for simulated content." },
+                    { sectionTitle: "Security Measures & Data Breaches (Generic)", sectionContent: "Details on the security practices implemented to protect user data (e.g., encryption, access controls, physical security). It also outlines the company's policy on data breach notification, including how users will be informed and what steps will be taken to mitigate harm. This is a generic overview for simulated content." }
+                ]
+            };
+        }
+
+        // Function to render summary analysis
+        function renderSummaryAnalysis(summaryData) {
+            summaryList.innerHTML = ''; // Clear previous summary
+            if (summaryData && summaryData.length > 0) {
+                for (const item of summaryData) {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex items-start gap-3';
+                    listItem.innerHTML = `
+                        <span class="${item.colorClass} text-xl flex-shrink-0 summary-icon" data-lucide="${item.icon}"></span>
+                        <div class="flex flex-col">
+                            <span class="font-medium ${item.tagText} text-sm ${item.tagBg} px-2 py-0.5 rounded-full mb-1 inline-block w-fit">${item.type}</span>
+                            <p class="summary-text-content">${item.content}</p>
+                        </div>
+                    `;
+                    summaryList.appendChild(listItem);
+                    lucide.createIcons(); // Create icon for new list item
+                }
+            } else {
+                summaryList.innerHTML = '<li class="text-gray-600">No key takeaways found.</li>';
+            }
+        }
+
+        // Function to render detailed analysis
+        function renderDetailedAnalysis(detailedData) {
+            detailedAnalysisContent.innerHTML = ''; // Clear previous content
+            if (detailedData && detailedData.length > 0) {
+                detailedData.forEach((section, index) => {
+                    const accordionItem = document.createElement('div');
+                    accordionItem.className = 'accordion-item glass-card';
+                    accordionItem.innerHTML = `
+                        <input type="checkbox" id="detailedFaq${index}">
+                        <label for="detailedFaq${index}" class="accordion-header text-lg font-medium">
+                            ${section.sectionTitle}
+                            <i data-lucide="chevron-down" class="icon w-5 h-5 text-gray-600"></i>
+                        </label>
+                        <div class="accordion-content">
+                            <p class="text-gray-700 py-4">${section.sectionContent}</p>
+                        </div>
+                    `;
+                    detailedAnalysisContent.appendChild(accordionItem);
+                });
+                lucide.createIcons(); // Create icons for new accordion items
+            } else {
+                detailedAnalysisContent.innerHTML = '<p class="text-gray-600 text-center py-4">Detailed analysis not available for this entry.</p>';
+            }
+        }
+
+        // --- IMPORTANT: Replace "YOUR_GEMINI_API_KEY_HERE" with your actual Gemini API Key ---
+        // You can get your API Key from Google AI Studio: https://aistudio.google.com/app/apikey
+        // When running this code outside of the Canvas environment, the API Key must be explicitly provided.
+        const apiKey = "AIzaSyDjzr1WBiaUMIsmgm8OrUT5KttnugdCv2o"; 
+        
+        // --- Company Search Functionality (Uses Predefined Data) ---
+        analyzeCompanyBtn.addEventListener('click', () => {
+            const companyName = companySearchInput.value.trim().toLowerCase(); // Convert to lowercase for matching
+            let analysisData;
+            let companyDisplayName = companySearchInput.value.trim(); // Keep original casing for display
+            let logoSrc = '';
+
+            if (predefinedCompanyData[companyName]) {
+                // If company is predefined, use its data
+                analysisData = predefinedCompanyData[companyName];
+                companyDisplayName = analysisData.name; // Use predefined name if available
+                logoSrc = analysisData.logoUrl;
+                lastAnalyzedText = `Predefined data for ${companyDisplayName}. Specific T&C text is not available for direct AI questioning via 'Ask AI' for this predefined entry.`; // Store identifier for AI question logic
+            } else {
+                // Fallback to simulated data if company not found in predefined list
+                analysisData = getSimulatedAnalysisData();
+                logoSrc = "https://placehold.co/60x60/CCCCCC/666666?text=C"; // Generic placeholder
+                lastAnalyzedText = `Simulated T&C data for a generic company (${companyDisplayName}). Specific T&C text is not available for direct AI questioning via 'Ask AI' for this simulated entry.`; // Store identifier for AI question logic
+            }
+            
+            // Set company logo and name
+            companyLogo.src = logoSrc;
+            companyLogo.alt = `${companyDisplayName} Logo`;
+            companyAnalyzedName.textContent = companyDisplayName;
+
+            loadingSpinner.classList.remove('hidden');
+            summaryOutputSection.classList.add('hidden');
+            detailedAnalysisSection.classList.add('hidden'); // Hide detailed section initially
+            detailedAnalysisContent.classList.add('hidden'); // Ensure content is hidden
+            toggleButtonText.textContent = "Show Detailed Analysis"; // Reset toggle button
+            toggleButtonIcon.style.transform = 'rotate(0deg)'; // Reset toggle icon
+            fileUploadStatus.textContent = `Analyzing ${companyDisplayName}'s T&C...`;
+            fileUploadStatus.classList.remove('hidden');
+            
+            // Clear previous content
+            summaryList.innerHTML = '';
+            aiAnswerContainer.classList.add('hidden');
+            aiAnswer.innerHTML = '';
+            
+
+            setTimeout(() => {
+                loadingSpinner.classList.add('hidden');
+                summaryOutputSection.classList.remove('hidden');
+                detailedAnalysisSection.classList.remove('hidden'); // Make sure the section itself is visible
+
+                fullSummaryData = analysisData.summary;
+                fullDetailedAnalysisData = analysisData.detailedAnalysis;
+                
+                // Render summary and detailed analysis
+                renderSummaryAnalysis(fullSummaryData);
+                renderDetailedAnalysis(fullDetailedAnalysisData); // Render detailed analysis
+
+                // Update final verdict and risk score graph
+                finalVerdictText.textContent = analysisData.finalVerdict;
+                finalVerdictText.className = 'text-4xl font-bold'; // Reset classes for dynamic styling
+
+                let gradientColors;
+                let barColor;
+
+                if (analysisData.finalVerdict === 'Safe') {
+                    finalVerdictText.classList.add('text-green-700');
+                    gradientColors = 'to-green-100 from-white via-green-50'; // White to light green
+                    barColor = '#22c55e'; // Green-500
+                } else if (analysisData.finalVerdict === 'Risky') {
+                    finalVerdictText.classList.add('text-red-700');
+                    gradientColors = 'to-red-100 from-white via-red-50'; // White to light red
+                    barColor = '#ef4444'; // Red-500
+                } else { // Review Recommended
+                    finalVerdictText.classList.add('text-yellow-700');
+                    gradientColors = 'to-yellow-100 from-white via-yellow-50';
+                    barColor = '#3b82f6'; // Blue-500
+                }
+                finalVerdictBox.className = `final-verdict-box relative mt-10 p-6 rounded-xl text-center shadow-lg bg-gradient-to-br ${gradientColors} overflow-hidden`;
+                
+                if (riskScoreBar) { 
+                    riskScoreBar.style.backgroundColor = barColor; // Set color immediately
+                    animateRiskScore(riskScoreBar, analysisData.riskScorePercentage, 2000); // 2000ms = 2 seconds
+                }
+                
+                askAiSection.classList.remove('hidden'); 
+                summaryOutputSection.classList.remove('is-visible');
+                fileUploadStatus.textContent = `Analysis complete!`;
+                
+            }, 2000); // Simulate 2 second analysis
+        });
+
+        // --- File Upload Functionality Simulation (Requires Backend for real PDF/large text processing) ---
+        // Prevent default drag behaviors for the new smaller drop area
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight drop area when dragging over
+        dropArea.addEventListener('dragenter', () => dropArea.classList.add('border-blue-500'), false);
+        dropArea.addEventListener('dragover', () => dropArea.classList.add('border-blue-500'), false);
+
+        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-blue-500'), false);
+        dropArea.addEventListener('drop', () => dropArea.classList.remove('border-blue-500'), false);
+
+
+        // Handle dropped files for the small drop area
+        dropArea.addEventListener('drop', handleFiles, false);
+
+        // Handle add file button click
+        addFileBtn.addEventListener('click', () => {
+            fileUploadInput.click();
+        });
+
+        // Handle file input change
+        fileUploadInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) {
+                fileUploadStatus.textContent = "No file selected.";
+                fileUploadStatus.classList.remove('hidden');
+                return;
+            }
+
+            const file = files[0];
+            const allowedTypes = ['application/pdf', 'text/plain'];
+
+            if (!allowedTypes.includes(file.type)) {
+                fileUploadStatus.textContent = `Error: "${file.name}" is not a PDF or TXT file.`;
+                fileUploadStatus.classList.remove('hidden');
+                showCustomMessage(`Error: "${file.name}" is not a PDF or TXT file.`, "File Type Error");
+                return;
+            }
+
+            fileUploadStatus.textContent = `Uploading "${file.name}"...`;
+            fileUploadStatus.classList.remove('hidden');
+            loadingSpinner.classList.remove('hidden');
+            summaryOutputSection.classList.add('hidden');
+            detailedAnalysisSection.classList.add('hidden'); // Hide detailed section
+            detailedAnalysisContent.classList.add('hidden'); // Ensure content is hidden
+            toggleButtonText.textContent = "Show Detailed Analysis"; // Reset toggle button
+            toggleButtonIcon.style.transform = 'rotate(0deg)'; // Reset toggle icon
+            
+            // Clear previous content
+            summaryList.innerHTML = '';
+            aiAnswerContainer.classList.add('hidden'); // Hide AI answer section
+            aiAnswer.innerHTML = ''; // Clear previous answer
+
+            // Simulate file upload and analysis
+            setTimeout(() => {
+                fileUploadStatus.textContent = `"${file.name}" uploaded and analyzed successfully!`;
+                loadingSpinner.classList.add('hidden');
+                summaryOutputSection.classList.remove('hidden');
+                detailedAnalysisSection.classList.remove('hidden');
+
+                const analysisData = getSimulatedAnalysisData(); // Always use generic simulated data for file upload
+                fullSummaryData = analysisData.summary;
+                fullDetailedAnalysisData = analysisData.detailedAnalysis; // Store detailed analysis
+                
+                // Set generic company logo and name for file upload
+                companyLogo.src = "https://placehold.co/60x60/CCCCCC/666666?text=FILE";
+                companyLogo.alt = "Uploaded File Analysis";
+                companyAnalyzedName.textContent = "Uploaded Document Analysis";
+                lastAnalyzedText = `File content from "${file.name}". This is simulated data, so some specific details might not be accurate for AI questioning.`; // Store identifier for AI question logic
+
+                // Render summary
+                renderSummaryAnalysis(fullSummaryData);
+                renderDetailedAnalysis(fullDetailedAnalysisData); // Render detailed analysis
+
+                // Update final verdict and risk score graph
+                finalVerdictText.textContent = analysisData.finalVerdict;
+                finalVerdictText.className = 'text-4xl font-bold'; // Reset classes for dynamic styling
+                
+                let gradientColors;
+                let barColor;
+
+                if (analysisData.finalVerdict === 'Safe') {
+                    finalVerdictText.classList.add('text-green-700');
+                    gradientColors = 'to-green-100 from-white via-green-50';
+                    barColor = '#22c55e'; // Green-500
+                } else if (analysisData.finalVerdict === 'Risky') {
+                    finalVerdictText.classList.add('text-red-700');
+                    gradientColors = 'to-red-100 from-white via-red-50';
+                    barColor = '#ef4444'; // Red-500
+                } else { // Review Recommended
+                    finalVerdictText.classList.add('text-yellow-700');
+                    gradientColors = 'to-yellow-100 from-white via-yellow-50';
+                    barColor = '#3b82f6'; // Blue-500
+                }
+                finalVerdictBox.className = `final-verdict-box relative mt-10 p-6 rounded-xl text-center shadow-lg bg-gradient-to-br ${gradientColors} overflow-hidden`;
+                
+                if (riskScoreBar) { 
+                    riskScoreBar.style.backgroundColor = barColor; // Set color immediately
+                    animateRiskScore(riskScoreBar, analysisData.riskScorePercentage, 2000); // 2000ms = 2 seconds
+                }
+                
+                askAiSection.classList.remove('hidden'); 
+                summaryOutputSection.classList.remove('is-visible');
+            }, 3000); // Simulate 3 second analysis
+        }
+
+        // --- Handle text upload with Gemini API ---
+        uploadTextBtn.addEventListener('click', async () => {
+            const textContent = textUploadInput.value.trim();
+            if (!textContent) {
+                showCustomMessage("Please paste some text to analyze.", "Text Input Empty");
+                return;
+            }
+            lastAnalyzedText = textContent; // Store the actual text content for AI questioning
+
+            loadingSpinner.classList.remove('hidden');
+            summaryOutputSection.classList.add('hidden');
+            detailedAnalysisSection.classList.add('hidden'); // Hide detailed section
+            detailedAnalysisContent.classList.add('hidden'); // Ensure content is hidden
+            toggleButtonText.textContent = "Show Detailed Analysis"; // Reset toggle button
+            toggleButtonIcon.style.transform = 'rotate(0deg)'; // Reset toggle icon
+            fileUploadStatus.textContent = `Analyzing text content with AI...`;
+            fileUploadStatus.classList.remove('hidden');
+
+            // Clear previous content
+            summaryList.innerHTML = '';
+            aiAnswerContainer.classList.add('hidden'); // Hide AI answer section
+            aiAnswer.innerHTML = ''; // Clear previous answer
+            
+            // Set generic logo and name for pasted text
+            companyLogo.src = "https://placehold.co/60x60/CCCCCC/666666?text=TEXT";
+            companyLogo.alt = "Pasted Text Analysis";
+            companyAnalyzedName.textContent = "Pasted Text Analysis";
+
+
+            try {
+                const prompt = `Analyze the following Terms & Conditions text and provide a structured JSON output.
+                The analysis should include:
+                1.  A 'summary' array with key takeaways (maximum 5 items). Each item should have:
+                    - 'type': one of "Key Benefit", "Important Clause", "Potential Risk", "Information".
+                    - 'icon': a Lucide icon name, carefully chosen based on the 'type' (e.g., "check-circle" for Benefit, "alert-triangle" for Important, "x-circle" for Risk, "info" for Information).
+                    - 'colorClass': a Tailwind CSS text color class consistent with the 'type' (e.g., "text-green-500", "text-yellow-500", "text-red-500", "text-blue-500").
+                    - 'tagBg': a Tailwind CSS background color class consistent with the 'type' (e.g., "bg-green-100", "bg-yellow-100", "bg-red-100", "bg-blue-100").
+                    - 'tagText': a Tailwind CSS text color class consistent with the 'type' (e.g., "text-green-700", "text-yellow-700", "text-red-700", "text-blue-700").
+                    - 'content': a detailed explanation of the takeaway.
+                2.  A 'detailedAnalysis' array with at least 3-4 sections providing in-depth information. Each item should have:
+                    - 'sectionTitle': a heading for the detailed section (e.g., "Data Collection Practices").
+                    - 'sectionContent': detailed text for that section.
+                3.  A 'finalVerdict': one of "Safe", "Review Recommended", "Risky", based on the overall analysis.
+                4.  A 'riskScorePercentage': a number between 0 and 100, where higher means safer.
+
+                All content in summary and detailedAnalysis sections should be in English.
+
+                Here is the text to analyze:
+                ${textContent}`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "summary": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "type": { "type": "STRING", "enum": ["Key Benefit", "Important Clause", "Potential Risk", "Information"] },
+                                            "icon": { "type": "STRING" },
+                                            "colorClass": { "type": "STRING" },
+                                            "tagBg": { "type": "STRING" },
+                                            "tagText": { "type": "STRING" },
+                                            "content": { "type": "STRING" }
+                                        },
+                                        "required": ["type", "icon", "colorClass", "tagBg", "tagText", "content"]
+                                    }
+                                },
+                                "detailedAnalysis": {
+                                    "type": "ARRAY",
+                                    "items": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "sectionTitle": { "type": "STRING" },
+                                            "sectionContent": { "type": "STRING" }
+                                        },
+                                        "required": ["sectionTitle", "sectionContent"]
+                                    }
+                                },
+                                "finalVerdict": { "type": "STRING", "enum": ["Safe", "Review Recommended", "Risky"] },
+                                "riskScorePercentage": { "type": "NUMBER", "minimum": 0, "maximum": 100 }
+                            },
+                            "required": ["summary", "detailedAnalysis", "finalVerdict", "riskScorePercentage"]
+                        }
+                    }
+                };
+
+                const apiKey = "AIzaSyDjzr1WBiaUMIsmgm8OrUT5KttnugdCv2o"; 
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                console.log("Raw API response:", result); // Log the raw API response for debugging
+
+                if (response.ok && result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const json = result.candidates[0].content.parts[0].text;
+                    console.log("Raw JSON string from AI:", json); // Log the raw JSON string
+
+                    try {
+                        const analysisData = JSON.parse(json); // Attempt to parse
+                        fullSummaryData = analysisData.summary;
+                        fullDetailedAnalysisData = analysisData.detailedAnalysis; // Store detailed analysis
+                        
+                        renderSummaryAnalysis(fullSummaryData);
+                        renderDetailedAnalysis(fullDetailedAnalysisData); // Render detailed analysis
+
+                        finalVerdictText.textContent = analysisData.finalVerdict;
+                        finalVerdictText.className = 'text-4xl font-bold'; // Reset classes for dynamic styling
+
+                        let gradientColors;
+                        let barColor;
+
+                        if (analysisData.finalVerdict === 'Safe') {
+                            finalVerdictText.classList.add('text-green-700');
+                            gradientColors = 'to-green-100 from-white via-green-50';
+                            barColor = '#22c55e'; // Green-500
+                        } else if (analysisData.finalVerdict === 'Risky') {
+                            finalVerdictText.classList.add('text-red-700');
+                            gradientColors = 'to-red-100 from-white via-red-50';
+                            barColor = '#ef4444'; // Red-500
+                        } else { // Review Recommended
+                            finalVerdictText.classList.add('text-yellow-700');
+                            gradientColors = 'to-yellow-100 from-white via-yellow-50';
+                            barColor = '#3b82f6'; // Blue-500
+                        }
+                        finalVerdictBox.className = `final-verdict-box relative mt-10 p-6 rounded-xl text-center shadow-lg bg-gradient-to-br ${gradientColors} overflow-hidden`;
+
+                        if (riskScoreBar) {
+                            riskScoreBar.style.backgroundColor = barColor;
+                            animateRiskScore(riskScoreBar, analysisData.riskScorePercentage, 2000);
+                        }
+                        
+                        summaryOutputSection.classList.remove('hidden');
+                        summaryOutputSection.classList.add('is-visible'); // Ensure animation
+                        detailedAnalysisSection.classList.remove('hidden'); // Show detailed section
+                        askAiSection.classList.remove('hidden'); // Show the Ask AI section after analysis
+                        fileUploadStatus.textContent = `Text analyzed successfully!`;
+
+                    } catch (parseError) {
+                        console.error("Error parsing JSON from AI:", parseError);
+                        showCustomMessage("Failed to parse AI response. The AI might not have returned valid JSON. Please check the console for more details.", "Parsing Error");
+                        fileUploadStatus.textContent = `Analysis failed: Parsing error.`;
+                    }
+
+                } else {
+                    console.error("Gemini API response structure unexpected or missing content:", result);
+                    showCustomMessage(`Failed to get analysis from AI. AI response was unexpected. Status: ${response.status}. Please check the console for raw response.`, "Analysis Error"); 
+                    fileUploadStatus.textContent = `Analysis failed: Unexpected AI response.`; 
+                }
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                showCustomMessage("An error occurred during analysis. Please check your network or API Key.", "Network/API Error"); 
+                fileUploadStatus.textContent = `Analysis failed: ${error.message}`; 
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        });
+
+        // --- Custom Message Box (Replaces alert()) ---
+        function showCustomMessage(message, title = "Notification") {
+            // Create modal elements if they don't exist
+            let modalOverlay = document.getElementById('customMessageOverlay');
+            if (!modalOverlay) {
+                modalOverlay = document.createElement('div');
+                modalOverlay.id = 'customMessageOverlay';
+                modalOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none';
+                modalOverlay.innerHTML = `
+                    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full transform -translate-y-4 opacity-0 transition-all duration-300">
+                        <h4 class="text-xl font-semibold mb-4 text-gray-800" id="customMessageTitle"></h4>
+                        <p class="text-gray-700 mb-6" id="customMessageContent"></p>
+                        <button id="customMessageCloseBtn" class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">OK</button>
+                    </div>
+                `;
+                document.body.appendChild(modalOverlay);
+
+                const closeBtn = document.getElementById('customMessageCloseBtn');
+                closeBtn.addEventListener('click', () => {
+                    modalOverlay.classList.remove('opacity-100');
+                    modalOverlay.classList.add('opacity-0', 'pointer-events-none');
+                    modalOverlay.querySelector('div').classList.remove('translate-y-0', 'opacity-100');
+                    modalOverlay.querySelector('div').classList.add('-translate-y-4', 'opacity-0');
+                });
+            }
+
+            document.getElementById('customMessageTitle').textContent = title;
+            document.getElementById('customMessageContent').textContent = message;
+
+            modalOverlay.classList.remove('pointer-events-none');
+            modalOverlay.classList.add('opacity-100');
+            modalOverlay.querySelector('div').classList.remove('-translate-y-4', 'opacity-0');
+            modalOverlay.querySelector('div').classList.add('translate-y-0', 'opacity-100');
+        }
+
+        // Initial check for sections already in viewport on load
+        sections.forEach(section => {
+            if (section.getBoundingClientRect().top < window.innerHeight && section.getBoundingClientRect().bottom > 0) {
+                section.classList.add('is-visible');
+            }
+        });
+
+        // --- Tagline Tooltip and Reveal Button Logic ---
+        const highlightWords = document.querySelectorAll('.highlight-word');
+        highlightWords.forEach(wordSpan => {
+            const tooltipText = wordSpan.dataset.tooltip;
+            if (tooltipText) {
+                const tooltipDiv = document.createElement('div');
+                tooltipDiv.className = 'word-tooltip';
+                tooltipDiv.textContent = tooltipText;
+                wordSpan.appendChild(tooltipDiv);
+
+                // For touch devices (tap to show/hide tooltip)
+                wordSpan.addEventListener('touchstart', function(e) {
+                    e.stopPropagation(); // Prevent body click from closing immediately
+                    // Close other open tooltips
+                    document.querySelectorAll('.highlight-word.active-touch').forEach(otherWord => {
+                        if (otherWord !== this) {
+                            otherWord.classList.remove('active-touch');
+                        }
+                    });
+                    this.classList.toggle('active-touch');
+                });
+                // Close tooltip when tapping outside
+                document.body.addEventListener('touchstart', function(e) {
+                    if (!e.target.closest('.highlight-word')) {
+                        document.querySelectorAll('.highlight-word.active-touch').forEach(word => {
+                            word.classList.remove('active-touch');
+                        });
+                    }
+                });
+            }
+        });
+
+        const revealDetailsBtn = document.getElementById('revealDetailsBtn');
+        revealDetailsBtn.addEventListener('click', () => {
+            // Scroll to the text upload input
+            document.getElementById('textUploadInput').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        // --- Toggle Detailed Analysis Section ---
+        if (toggleDetailedAnalysisBtn) { 
+            toggleDetailedAnalysisBtn.addEventListener('click', () => {
+                if (detailedAnalysisContent && toggleButtonText && toggleButtonIcon) { 
+                    if (detailedAnalysisContent.classList.contains('hidden')) {
+                        // Show detailed analysis
+                        detailedAnalysisContent.classList.remove('hidden');
+                        toggleButtonText.textContent = "Hide Detailed Analysis";
+                        toggleButtonIcon.style.transform = 'rotate(180deg)';
+                        detailedAnalysisContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        // Hide detailed analysis
+                        detailedAnalysisContent.classList.add('hidden');
+                        toggleButtonText.textContent = "Show Detailed Analysis";
+                        toggleButtonIcon.style.transform = 'rotate(0deg)';
+                    }
+                }
+            });
+        }
+
+        // --- Ask AI about T&C Functionality ---
+        askAiBtn.addEventListener('click', async () => {
+            const userQuestion = aiQuestionInput.value.trim();
+            if (!userQuestion) {
+                showCustomMessage("Please type a question to ask the AI.", "Question Empty");
+                return;
+            }
+
+            // Enhanced check to ensure actual T&C text was analyzed by the AI for relevant context
+            if (!lastAnalyzedText || lastAnalyzedText.startsWith("Predefined data") || lastAnalyzedText.startsWith("Simulated T&C data")) {
+                showCustomMessage("To ask the AI a question, you must first paste T&C text into the 'Paste Text Here' box and click 'Upload Text'. AI questions are not supported for company searches or file uploads that use simulated/predefined data.", "No Analysis Text Found");
+                return;
+            }
+
+            aiAnswerContainer.classList.remove('hidden');
+            aiAnswer.innerHTML = ''; // Clear previous answer
+            aiAnswerLoading.classList.remove('hidden'); // Show loading spinner
+
+            try {
+                const prompt = `Here is a Terms & Conditions text:
+
+                "${lastAnalyzedText}"
+
+                Based on this Terms & Conditions text, please answer the following question:
+
+                " ${userQuestion} "
+
+                Please keep the answer concise, direct, and strictly based on the provided text. If the information is not in the text, please state that the information is not available in the provided text.`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                };
+
+                const apiKey = "AIzaSyDjzr1WBiaUMIsmgm8OrUT5KttnugdCv2o"; 
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const aiResponseText = result.candidates[0].content.parts[0].text;
+                    aiAnswer.innerHTML = aiResponseText; // Display AI's answer
+                } else {
+                    console.error("Gemini API response structure unexpected:", result);
+                    aiAnswer.innerHTML = "Sorry, I had trouble getting an answer to your question. Please try again.";
+                }
+
+            } catch (error) {
+                console.error("Error calling Gemini API for question:", error);
+                aiAnswer.innerHTML = "An error occurred while fetching the answer. Please check your network.";
+            } finally {
+                aiAnswerLoading.classList.add('hidden');
+            }
+        });
+
+    </script>
+</body>
+</html>
